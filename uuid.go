@@ -84,10 +84,14 @@ func uint16ToBytes(val uint16) []byte {
 	return result
 }
 
+// getNanos100s calculates the 100s of nanoseconds between now(UTC) and the
+// Gregorian calendar epoch. Returns 100s of nanoseconds.
 func getNanos100s() uint64 {
 	return epochDiffNanos100s + uint64(time.Now().In(time.UTC).UnixNano()/100)
 }
 
+// NewV1 generates a RFC 4122 Version 1 compliant UUID. Returns 128-bit / 16
+// byte array representing the UUID.
 func NewV1() []byte {
 
 	u.Lock()
@@ -126,6 +130,8 @@ func NewV1() []byte {
 	return result
 }
 
+// NewV4 generates a RFC 4122 Version 4 compliant UUID. Returns 128-bit / 16
+// byte array representing the UUID.
 func NewV4() []byte {
 	/*
 		1. Set all the other bits to randomly (or pseudo-randomly) chosen
