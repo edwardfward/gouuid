@@ -152,6 +152,8 @@ func NewV4() []byte {
 	return result
 }
 
+//PrintUUID returns properly formatted UUID string for any RFC 4122 version,
+//including the nil UUID.
 func PrintUUID(uuid []byte) string {
 	if uuid == nil {
 		uuid = make([]byte, 16)
