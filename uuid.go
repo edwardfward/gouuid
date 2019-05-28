@@ -1,3 +1,7 @@
+// Copyright 2019 Edward F. Ward III.  All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package uuid
 
 // reference https://tools.ietf.org/html/rfc4122#section-4.2.1
@@ -10,6 +14,24 @@ import (
 	"time"
 )
 
+// RFC 4122 uses the Gregorian epoch (15 October 1582) for calculating 100s
+// of nanoseconds. Since Go's Time.Duration returns an int64 for nanoseconds,
+// we need to perform the intermediate step of calculating 100s of nanoseconds
+// between the Gregorian epoch and Unix epoch. We determine the number of days
+// between 15 October 1582 (Julian 2299171) and 1 January 1970 (Julian 2440601)
+// and then multiply the number of seconds * 1e7 (nanoseconds are 1e9 but
+// since we are dividing by 100, we only need to multiply 1e7).
+
+// Julian dates calculated from http://numerical.recipes/julian.html
+
+const (
+	gregorianEpochJulianDays = 2299171 // 15 October 1582
+	unixEpochJulianDays      = 2440601 // 1 January 1970
+)
+
+var epochDiffNanos100s = uint64((unixEpochJulianDays - gregorianEpochJulianDays) *
+	(24 * 60 * 60) * 1e7)
+
 type uuid struct {
 	sync.Mutex
 	timestamp uint64
@@ -17,13 +39,6 @@ type uuid struct {
 	count     uint32
 	node      []byte
 }
-
-// RFC 4122 uses the start of the Gregorian calendar (15 October, 1582) but
-// Go's time.Since is limited to 256 years (max value of int64 nanoseconds).
-// UUID uses the UNIX calendar (1 January, 1970) instead.
-var UnixDate = time.Date(1970,
-	time.January, 1, 0, 0, 0, 0,
-	time.UTC)
 
 var u = uuid{
 	timestamp: getNanos100s(),
@@ -69,7 +84,7 @@ func uint16ToBytes(val uint16) []byte {
 }
 
 func getNanos100s() uint64 {
-	return uint64(time.Since(UnixDate).Nanoseconds() / 100)
+	return epochDiffNanos100s + uint64(time.Now().In(time.UTC).UnixNano()/100)
 }
 
 func NewV1() []byte {
