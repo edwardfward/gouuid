@@ -53,8 +53,10 @@ func init() {
 	// if unable to read interfaces, set to random
 	if err != nil {
 		randomNode := make([]byte, 6)
+		// create 48-bit random bits
 		rand.Read(randomNode)
-		// create a 48-bit number for random node
+		// check to ensure the most significant bit of the random bits is 1
+		randomNode[0] = randomNode[0] | 128
 		u.node = randomNode
 	}
 
