@@ -47,6 +47,28 @@ func TestNewV1(t *testing.T) {
 	}
 }
 
+func TestNewV3(t *testing.T) {
+	result := NewV3(u.namespace, "test")
+	if result == nil {
+		t.Fatalf("returned a nil byte array")
+	}
+
+	// check version is 3
+	if result[6] >> 4 != 3 {
+		t.Fatalf("incorrect version number detected")
+	}
+
+	// check clock sequence bits set correctly
+	if result[8] >> 6 != 2 {
+		t.Fatalf("incorrect clock sequence detected")
+	}
+
+	// check string properly formatted for UUID
+	for i := 0; i < 10; i++ {
+		t.Log(PrintUUID(result))
+	}
+}
+
 func TestNewV4(t *testing.T) {
 	result := NewV4()
 	if result == nil {
@@ -72,6 +94,12 @@ func TestNewV4(t *testing.T) {
 func BenchmarkNewV1(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		NewV1()
+	}
+}
+
+func BenchmarkNewV3(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		NewV3(u.namespace, "test")
 	}
 }
 

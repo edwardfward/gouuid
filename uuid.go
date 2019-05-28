@@ -7,7 +7,9 @@ package uuid
 // reference https://tools.ietf.org/html/rfc4122#section-4.2.1
 
 import (
+	"crypto/md5"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"sync"
@@ -39,12 +41,14 @@ type uuid struct {
 	clock     uint16
 	count     uint32
 	node      []byte
+	namespace []byte
 }
 
 var u = uuid{
 	timestamp: getNanos100s(),
 	clock:     uint16(rand.Uint32()),
 	count:     0,
+	namespace: make([]byte, 16),
 }
 
 func init() {
@@ -60,6 +64,8 @@ func init() {
 		u.node = randomNode
 	}
 
+	// select the first six-byte network interface
+	// todo add error handling in the event only 8-byte interfaces are present
 	for _, inter := range interfaces {
 		if len(inter.HardwareAddr) != 6 {
 			continue
@@ -68,6 +74,9 @@ func init() {
 			break
 		}
 	}
+
+	// generate random uuid
+	u.namespace = NewV4()
 }
 
 func uint32ToBytes(val uint32) []byte {
@@ -132,6 +141,39 @@ func NewV1() []byte {
 	return result
 }
 
+// NewV3 generates a RFC 4122 Version 3 compliant UUID. Parameters are 128-bit
+// namespace UUID and hostname. Returns 128-bit / 16 byte array representing
+// the UUID.
+func NewV3(namespaceUUID []byte, name string) []byte {
+
+	concatName := append(namespaceUUID, []byte(name)...)
+	md5hash := md5.Sum(concatName)
+	timeLow := md5hash[0:4]
+	timeMid := md5hash[4:6]
+	timeHighAndVersion := md5hash[6:8]
+	timeHighAndVersion[0] &= 0x0F
+	timeHighAndVersion[0] |= 0x30
+	clockSeqHigh := md5hash[8]
+	clockSeqHigh &= 0x3F
+	clockSeqHigh |= 0x80
+	clockSeqLow := md5hash[9]
+	node := md5hash[10:]
+
+	result := make([]byte, 0, 0)
+	result = append(result, timeLow...)
+	result = append(result, timeMid...)
+	result = append(result, timeHighAndVersion...)
+	result = append(result, clockSeqHigh)
+	result = append(result, clockSeqLow)
+	result = append(result, node...)
+
+	if len(result) != 16 {
+		log.Fatal("incorrect bit length")
+	}
+
+	return result
+}
+
 // NewV4 generates a RFC 4122 Version 4 compliant UUID. Returns 128-bit / 16
 // byte array representing the UUID.
 func NewV4() []byte {
@@ -165,3 +207,5 @@ func PrintUUID(uuid []byte) string {
 		uuid[0:4], uuid[4:6], uuid[6:8],
 		uuid[8], uuid[9], uuid[10:16])
 }
+
+// todo add uuid string to byte array conversion
