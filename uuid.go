@@ -16,11 +16,12 @@ import (
 
 // RFC 4122 uses the Gregorian epoch (15 October 1582) for calculating 100s
 // of nanoseconds. Since Go's Time.Duration returns an int64 for nanoseconds,
-// we need to perform the intermediate step of calculating 100s of nanoseconds
-// between the Gregorian epoch and Unix epoch. We determine the number of days
-// between 15 October 1582 (Julian 2299171) and 1 January 1970 (Julian 2440601)
-// and then multiply the number of seconds * 1e7 (nanoseconds are 1e9 but
-// since we are dividing by 100, we only need to multiply 1e7).
+// which is limited to 250ish years of nanoseconds we need to perform the
+// intermediate step of calculating 100s of nanoseconds between the Gregorian
+// epoch and Unix epoch. We determine the number of days between 15 October
+// 1582 (Julian 2299171) and 1 January 1970 (Julian 2440601) and then multiply
+// the number of seconds by 1e7. Nanoseconds are 1e9 but since we are dividing
+// by 100, we only need to multiply 1e7).
 
 // Julian dates calculated from http://numerical.recipes/julian.html
 
