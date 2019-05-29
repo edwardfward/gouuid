@@ -8,8 +8,8 @@ package uuid
 
 import (
 	"crypto/md5"
+	"crypto/sha1"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"sync"
@@ -75,7 +75,7 @@ func init() {
 		}
 	}
 
-	// generate random uuid
+	// generate random uuid namespace in case one's not provided
 	u.namespace = NewV4()
 }
 
@@ -99,6 +99,21 @@ func uint16ToBytes(val uint16) []byte {
 // Gregorian calendar epoch. Returns 100s of nanoseconds.
 func getNanos100s() uint64 {
 	return epochDiffNanos100s + uint64(time.Now().In(time.UTC).UnixNano()/100)
+}
+
+func createUuidByteArray(timeLow []byte, timeMid []byte,
+	timeHighAndVersion []byte, clockSeqHi byte, clockSeqLow byte,
+	node []byte) []byte {
+
+	result := make([]byte, 0, 0)
+	result = append(result, timeLow...)
+	result = append(result, timeMid...)
+	result = append(result, timeHighAndVersion...)
+	result = append(result, clockSeqHi)
+	result = append(result, clockSeqLow)
+	result = append(result, node...)
+
+	return result
 }
 
 // NewV1 generates a RFC 4122 Version 1 compliant UUID. Returns 128-bit / 16
@@ -130,15 +145,10 @@ func NewV1() []byte {
 	clockSeqHiAndReserved := uint8((clockSequence >> 8 & 0x3F) | 0x80)
 	clockSeqLow := uint8(clockSequence & 0xFF)
 
-	result := make([]byte, 0, 0)[:]
-	result = append(result, uint32ToBytes(timeLow)...)
-	result = append(result, uint16ToBytes(timeMid)...)
-	result = append(result, uint16ToBytes(timeHiAndVersion)...)
-	result = append(result, byte(clockSeqHiAndReserved))
-	result = append(result, byte(clockSeqLow))
-	result = append(result, u.node...)
-
-	return result
+	return createUuidByteArray(uint32ToBytes(timeLow),
+		uint16ToBytes(timeMid),
+		uint16ToBytes(timeHiAndVersion), byte(clockSeqHiAndReserved),
+		byte(clockSeqLow), u.node)
 }
 
 // NewV3 generates a RFC 4122 Version 3 compliant UUID. Parameters are 128-bit
@@ -159,19 +169,8 @@ func NewV3(namespaceUUID []byte, name string) []byte {
 	clockSeqLow := md5hash[9]
 	node := md5hash[10:]
 
-	result := make([]byte, 0, 0)
-	result = append(result, timeLow...)
-	result = append(result, timeMid...)
-	result = append(result, timeHighAndVersion...)
-	result = append(result, clockSeqHigh)
-	result = append(result, clockSeqLow)
-	result = append(result, node...)
-
-	if len(result) != 16 {
-		log.Fatal("incorrect bit length")
-	}
-
-	return result
+	return createUuidByteArray(timeLow, timeMid, timeHighAndVersion,
+		clockSeqHigh, clockSeqLow, node)
 }
 
 // NewV4 generates a RFC 4122 Version 4 compliant UUID. Returns 128-bit / 16
@@ -194,6 +193,27 @@ func NewV4() []byte {
 	result[6] = (result[6] & 0x0F) | 0x40 // step 3
 
 	return result
+}
+
+func NewV5(namespaceUUID []byte, name string) []byte {
+	concatName := append(namespaceUUID, []byte(name)...)
+	hash := sha1.New()
+	sha1Hash := hash.Sum(concatName) // returns a 20-byte (160 bit) array
+	sha1HashReduced := sha1Hash[0:16] // need a 16-byte (128 bit) array
+	timeLow := sha1HashReduced[0:4]
+	timeMid := sha1HashReduced[4:6]
+	timeHighAndVersion := sha1HashReduced[6:8]
+	timeHighAndVersion[0] &= 0x0F
+	timeHighAndVersion[0] |= 0x50
+	clockSeqHigh := sha1HashReduced[8]
+	clockSeqHigh &= 0x3F
+	clockSeqHigh |= 0x80
+	clockSeqLow := sha1HashReduced[9]
+	node := sha1HashReduced[10:16]
+
+	return createUuidByteArray(timeLow, timeMid, timeHighAndVersion,
+		clockSeqHigh, clockSeqLow, node)
+
 }
 
 //PrintUUID returns properly formatted UUID string for any RFC 4122 version,
