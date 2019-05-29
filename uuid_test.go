@@ -65,7 +65,7 @@ func TestNewV3(t *testing.T) {
 
 	// check string properly formatted for UUID
 	for i := 0; i < 10; i++ {
-		t.Log(PrintUUID(result))
+		t.Log(PrintUUID(NewV3(u.namespace, "test")))
 	}
 }
 
@@ -109,7 +109,7 @@ func TestNewV5(t *testing.T) {
 
 	// check string properly formatted for UUID
 	for i := 0; i < 10; i++ {
-		t.Log(PrintUUID(NewV4()))
+		t.Log(PrintUUID(NewV5(u.namespace, "test")))
 	}
 }
 

@@ -197,8 +197,7 @@ func NewV4() []byte {
 
 func NewV5(namespaceUUID []byte, name string) []byte {
 	concatName := append(namespaceUUID, []byte(name)...)
-	hash := sha1.New()
-	sha1Hash := hash.Sum(concatName) // returns a 20-byte (160 bit) array
+	sha1Hash := sha1.Sum(concatName) // returns a 20-byte (160 bit) array
 	sha1HashReduced := sha1Hash[0:16] // need a 16-byte (128 bit) array
 	timeLow := sha1HashReduced[0:4]
 	timeMid := sha1HashReduced[4:6]
